@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+torch = "*"
+h5py = "*"
+torchtext = "*"
+opencv-python = "*"
+torchvision = "*"
+scikit-learn = "*"
+click = "*"
+IPython = "*"
+matplotlib = "*"
+[dev-packages]
+
+[requires]
+python_version = "3.8"
