@@ -38,10 +38,10 @@ def load_dataset(Dataset):
 
         TRAIN_SIZE = math.ceil(TOTAL_SIZE * VALIDATION_SPLIT)        
     if Dataset == 'DFC2013':
-        HS = sio.loadmat('../datasets/DFC2013_Houston.mat')
-        gt_HS = sio.loadmat('../datasets/DFC2013_Houston_gt.mat')
-        data_hsi = HS['DFC2013_Houston']
-        gt_hsi = gt_HS['DFC2013_Houston_gt']
+        HS = sio.loadmat('./dataset/DFC2013_Houston.mat')
+        gt_HS = sio.loadmat('./dataset/DFC2013_Houston_gt.mat')
+        data_hsi = HS['HSI'].astype(np.float32)
+        gt_hsi = gt_HS['gt']
         TOTAL_SIZE = 15029
         VALIDATION_SPLIT = 0.9
         TRAIN_SIZE = math.ceil(TOTAL_SIZE * VALIDATION_SPLIT)
@@ -60,6 +60,14 @@ def load_dataset(Dataset):
         gt_DFC = sio.loadmat('../datasets/DFC2018_Houston_gt.mat')
         data_hsi = DFC['DFC2018_Houston']
         gt_hsi = gt_DFC['DFC2018_Houston_gt']
+        TOTAL_SIZE = 504712
+        VALIDATION_SPLIT = 0.9
+        TRAIN_SIZE = math.ceil(TOTAL_SIZE * VALIDATION_SPLIT)
+    if Dataset == 'KSC':
+        DFC = sio.loadmat('./dataset/KSC.mat')
+        gt_DFC = sio.loadmat('./dataset/KSC_gt.mat')
+        data_hsi = DFC['KSC']
+        gt_hsi = gt_DFC['KSC_gt']
         TOTAL_SIZE = 504712
         VALIDATION_SPLIT = 0.9
         TRAIN_SIZE = math.ceil(TOTAL_SIZE * VALIDATION_SPLIT)
@@ -83,6 +91,7 @@ def save_cmap(img, cmap, fname):
 def sampling1(samples_num, ground_truth):
     train = {}
     test = {}
+    val = {}
     labels_loc = {}
     m = max(ground_truth)
     #print('max(ground_truth)', m )
@@ -90,21 +99,29 @@ def sampling1(samples_num, ground_truth):
         indexes = [j for j, x in enumerate(ground_truth.ravel().tolist()) if x == i + 1]
         np.random.shuffle(indexes)
         labels_loc[i] = indexes
-        nb_val = samples_num
+        nb_val = min(samples_num,len(indexes))
+        print('len(indexes)', len(indexes))
         train[i] = indexes[:nb_val]
-        test[i] = indexes[nb_val:]
+        val[i] = indexes[nb_val:2*nb_val]
+        test[i] = indexes[2*nb_val:]
+        #print('t_index', t_index)
+        #test[i] = indexes[nb_val:]
+    val_indexes = []
     train_indexes = []
     test_indexes = []
     for i in range(m):
         train_indexes += train[i]
+        val_indexes += val[i]
         test_indexes += test[i]
     np.random.shuffle(train_indexes)
+    np.random.shuffle(val_indexes)
     np.random.shuffle(test_indexes)
-    return train_indexes, test_indexes
+    return train_indexes, val_indexes, test_indexes
 
 def sampling2(ground_truth, proportion):
     train = {}
     test = {}
+    val = {}
     labels_loc = {}
     m = max(ground_truth)
     for i in range(m):
@@ -115,16 +132,21 @@ def sampling2(ground_truth, proportion):
             nb_val = max(int((1 - proportion) * len(indexes)), 3)
         else:
             nb_val = 0
+        print('nb_val', nb_val)
         train[i] = indexes[:nb_val]
-        test[i] = indexes[nb_val:]
+        val[i] = indexes[nb_val:2*nb_val]
+        test[i] = indexes[2*nb_val:]
     train_indexes = []
+    val_indexes = []
     test_indexes = []
     for i in range(m):
         train_indexes += train[i]
+        val_indexes += val[i]
         test_indexes += test[i]
     np.random.shuffle(train_indexes)
+    np.random.shuffle(val_indexes)
     np.random.shuffle(test_indexes)
-    return train_indexes, test_indexes
+    return train_indexes,val_indexes, test_indexes
 
 def aa_and_each_accuracy(confusion_matrix):
     list_diag = np.diag(confusion_matrix)
@@ -211,8 +233,8 @@ def generate_iter(TRAIN_SIZE, train_indices, TEST_SIZE, test_indices, TOTAL_SIZE
     y_train = gt[train_indices] - 1
     y_test = gt[test_indices] - 1
 
-    all_data = extract_samll_cubic.select_small_cubic(TOTAL_SIZE, total_indices, whole_data,
-                                                      PATCH_LENGTH, padded_data, INPUT_DIMENSION)
+    #all_data = extract_samll_cubic.select_small_cubic(TOTAL_SIZE, total_indices, whole_data,
+                                                      #PATCH_LENGTH, padded_data, INPUT_DIMENSION)
 
     train_data = extract_samll_cubic.select_small_cubic(TRAIN_SIZE, train_indices, whole_data,
                                                         PATCH_LENGTH, padded_data, INPUT_DIMENSION)
@@ -221,25 +243,26 @@ def generate_iter(TRAIN_SIZE, train_indices, TEST_SIZE, test_indices, TOTAL_SIZE
     x_train = train_data.reshape(train_data.shape[0], train_data.shape[1], train_data.shape[2], INPUT_DIMENSION)
     x_test_all = test_data.reshape(test_data.shape[0], test_data.shape[1], test_data.shape[2], INPUT_DIMENSION)
 
-    x_val = x_test_all[-VAL_SIZE:]
-    y_val = y_test[-VAL_SIZE:]
+    #x_val = x_test_all[-VAL_SIZE:]
+    #y_val = y_test[-VAL_SIZE:]
 
-    x_test = x_test_all[:-VAL_SIZE]
-    y_test = y_test[:-VAL_SIZE]
-
+    x_test = x_test_all
+    y_test = y_test
+    #x_test = x_test_all[:-VAL_SIZE]
+    #y_test = y_test[:-VAL_SIZE]
     x1_tensor_train = torch.from_numpy(x_train).type(torch.FloatTensor).unsqueeze(1)
     y1_tensor_train = torch.from_numpy(y_train).type(torch.FloatTensor)
     torch_dataset_train = Data.TensorDataset(x1_tensor_train, y1_tensor_train)
 
-    x1_tensor_valida = torch.from_numpy(x_val).type(torch.FloatTensor).unsqueeze(1)
-    y1_tensor_valida = torch.from_numpy(y_val).type(torch.FloatTensor)
-    print('y1_tensor_valida',y1_tensor_valida.shape)
-    print('x1_tensor_valida',x1_tensor_valida.shape)
-    torch_dataset_valida = Data.TensorDataset(x1_tensor_valida, y1_tensor_valida)
+    #x1_tensor_valida = torch.from_numpy(x_val).type(torch.FloatTensor).unsqueeze(1)
+    #y1_tensor_valida = torch.from_numpy(y_val).type(torch.FloatTensor)
+    #print('y1_tensor_valida',y1_tensor_valida.shape)
+    #print('x1_tensor_valida',x1_tensor_valida.shape)
+    #torch_dataset_valida = Data.TensorDataset(x1_tensor_valida, y1_tensor_valida)
 
-    #x1_tensor_test = torch.from_numpy(x_test).type(torch.FloatTensor).unsqueeze(1)
-    #y1_tensor_test = torch.from_numpy(y_test).type(torch.FloatTensor)
-    #torch_dataset_test = Data.TensorDataset(x1_tensor_test,y1_tensor_test)
+    x1_tensor_test = torch.from_numpy(x_test).type(torch.FloatTensor).unsqueeze(1)
+    y1_tensor_test = torch.from_numpy(y_test).type(torch.FloatTensor)
+    torch_dataset_test = Data.TensorDataset(x1_tensor_test,y1_tensor_test)
 
     #all_data.reshape(all_data.shape[0], all_data.shape[1], all_data.shape[2], INPUT_DIMENSION)
     #all_tensor_data = torch.from_numpy(all_data).type(torch.FloatTensor).unsqueeze(1)
@@ -253,25 +276,25 @@ def generate_iter(TRAIN_SIZE, train_indices, TEST_SIZE, test_indices, TOTAL_SIZE
         shuffle=True,
         num_workers=0,
     )
-    valiada_iter = Data.DataLoader(
-        dataset=torch_dataset_valida,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=0,
-    )
-    #test_iter = Data.DataLoader(
-        #dataset=torch_dataset_test,
+    #valiada_iter = Data.DataLoader(
+        #dataset=torch_dataset_valida,
         #batch_size=batch_size,
-        #shuffle=False,
+        #shuffle=True,
         #num_workers=0,
     #)
+    test_iter = Data.DataLoader(
+        dataset=torch_dataset_test,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=0,
+    )
     #all_iter = Data.DataLoader(
         #dataset=torch_dataset_all,
         #batch_size=batch_size,
         #shuffle=False,
         #num_workers=0,
     #)
-    return train_iter, valiada_iter#, test_iter, all_iter #, y_test
+    return train_iter, test_iter#, test_iter, all_iter #, y_test
 
 def generate_png(all_iter, net, gt_hsi, Dataset, device, total_indices):
     pred_test = []

@@ -18,7 +18,7 @@ sys.path.append('./networks')
 import network
 import train
 from sklearn.decomposition import PCA
-
+#import time
 sys.path.append('./utils')
 from generate_pic import aa_and_each_accuracy, sampling1, sampling2, load_dataset, generate_png, generate_iter
 import record, extract_samll_cubic
@@ -40,7 +40,7 @@ day_str = day.strftime('%m_%d_%H_%M')
 
 print('-----Importing Dataset-----')
 global Dataset
-dataset = 'PC'
+dataset = 'KSC'
 Dataset = dataset.upper()
 #data_hsi, gt_hsi, TOTAL_SIZE, TRAIN_SIZE,VALIDATION_SPLIT = load_dataset(Dataset)
 data_hsi, gt_hsi, _, _,_ = load_dataset(Dataset)
@@ -66,9 +66,9 @@ print('The class numbers of the HSI data is:', CLASSES_NUM)
 ##########################################
 
 print('-----Importing Setting Parameters-----')
-ITER = 2
-PATCH_LENGTH = 5
-lr, num_epochs, batch_size = 0.001, 100, 128
+ITER = 1
+PATCH_LENGTH = 4
+lr, num_epochs, batch_size = 0.001, 50, 128
 loss = torch.nn.CrossEntropyLoss()
 
 img_rows = 2*PATCH_LENGTH+1
@@ -85,7 +85,7 @@ TEST_SIZE = ALL_SIZE - TRAIN_SIZE
 print('ALL_SIZE:',ALL_SIZE, 'TRAIN_SIZE:',TRAIN_SIZE, 'VAL_SIZE:',VAL_SIZE )
 
 
-SAMPLES_NUM = 2000
+SAMPLES_NUM = 40
 
 KAPPA = []
 OA = []
@@ -94,7 +94,7 @@ TRAINING_TIME = []
 TESTING_TIME = []
 ELEMENT_ACC = np.zeros((ITER, CLASSES_NUM))
 
-print('part of data before preprocessing',data[0:10][0])
+print('part of data before preprocessing',data[100:110][0])
 #max_value = np.amax(data)
 #min_value = np.amin(data)
 #idx =np.where(data == max_value)
@@ -118,56 +118,69 @@ for index_iter in range(ITER):
     optimizer = optim.Adam(net.parameters(), lr=lr)
     time_1 = int(time.time())
     np.random.seed(seeds[index_iter])
-    train_indices, test_indices = sampling1(SAMPLES_NUM, gt)
-    print('train_indices', len(train_indices))
-    _, total_indices = sampling2(gt, 1)
+    #train_indices,val_indeces, test_indices = sampling1(SAMPLES_NUM, gt)
+    train_indices,val_indeces, test_indices = sampling2(gt, 0.7)
+    #print('train_indices', len(train_indices))
+    _,_, total_indices = sampling2(gt, 1)
     
     TRAIN_SIZE = len(train_indices)
     print('Train size: ', TRAIN_SIZE)
-    VAL_SIZE = int(TRAIN_SIZE)
+    VAL_SIZE = len(val_indeces)
     print('Validation size: ', VAL_SIZE)
-    TEST_SIZE = ALL_SIZE - TRAIN_SIZE - VAL_SIZE
+    #TEST_SIZE = ALL_SIZE - TRAIN_SIZE - VAL_SIZE
+    TEST_SIZE = len(test_indices)
+
     print('Test size: ', TEST_SIZE)
+    print('Test size: ' , len(test_indices))
+    print('total indeces', len(total_indices))
+
 
     
     print('-----Selecting Small Pieces from the Original Cube Data-----')
     #train_iter, valida_iter, test_iter, all_iter = generate_iter(TRAIN_SIZE, train_indices, TEST_SIZE, test_indices, ALL_SIZE, total_indices, VAL_SIZE,
                   #whole_data, PATCH_LENGTH, padded_data, INPUT_DIMENSION, batch_size, gt)
-    train_iter, valida_iter = generate_iter(TRAIN_SIZE, train_indices, TEST_SIZE, test_indices, ALL_SIZE, total_indices, VAL_SIZE,
+    #train_iter, valida_iter = generate_iter(TRAIN_SIZE, train_indices, TEST_SIZE, test_indices, ALL_SIZE, total_indices, VAL_SIZE,
+                  #whole_data, PATCH_LENGTH, padded_data, INPUT_DIMENSION, batch_size, gt)
+    train_iter, valida_iter = generate_iter(TRAIN_SIZE, train_indices, VAL_SIZE, val_indeces, ALL_SIZE, total_indices, VAL_SIZE,
                   whole_data, PATCH_LENGTH, padded_data, INPUT_DIMENSION, batch_size, gt)
+    _, test_iter = generate_iter(TRAIN_SIZE, train_indices, TEST_SIZE, test_indices, ALL_SIZE, total_indices, VAL_SIZE,
+                  whole_data, PATCH_LENGTH, padded_data, INPUT_DIMENSION, batch_size, gt)
+    _, all_iter = generate_iter(TRAIN_SIZE, train_indices, len(total_indices), total_indices, ALL_SIZE, total_indices, VAL_SIZE,
+                whole_data, PATCH_LENGTH, padded_data, INPUT_DIMENSION, batch_size, gt)
+        
     print('-----Begining to Train The Model with Training Dataset-----')
-    #tic1 = time.clock()
+    tic1 = time.time()
     train.train(net, train_iter, valida_iter, loss, optimizer, device, epochs=num_epochs)
-    #toc1 = time.clock()
+    toc1 = time.time()
     
-    #pred_test = []
-    #tic2 = time.clock()
-    #with torch.no_grad():
-        #for X, y in test_iter:
-            #X = X.to(device)
-            #net.eval()
-            #y_hat = net(X)
-            #pred_test.extend(np.array(net(X).cpu().argmax(axis=1)))
-    #toc2 = time.clock()
-    #collections.Counter(pred_test)
-    #gt_test = gt[test_indices] - 1
+    pred_test = []
+    tic2 = time.time()
+    with torch.no_grad():
+        for X, y in test_iter:
+            X = X.to(device)
+            net.eval()
+            y_hat = net(X)
+            pred_test.extend(np.array(net(X).cpu().argmax(axis=1)))
+    toc2 = time.time()
+    collections.Counter(pred_test)
+    gt_test = gt[test_indices] - 1
     
-    #overall_acc = metrics.accuracy_score(pred_test, gt_test[:-VAL_SIZE])
-    #confusion_matrix = metrics.confusion_matrix(pred_test, gt_test[:-VAL_SIZE])
-    #each_acc, average_acc = aa_and_each_accuracy(confusion_matrix)
-    #kappa = metrics.cohen_kappa_score(pred_test, gt_test[:-VAL_SIZE])
-    #print(each_acc)
-    #torch.save(net.state_dict(), "./models/" + str(round(overall_acc, 3)) + '.pt')
-    #KAPPA.append(kappa)
-    #OA.append(overall_acc)
-    #AA.append(average_acc)
-    #TRAINING_TIME.append(toc1 - tic1)
-    #TESTING_TIME.append(toc2 - tic2)
-    #ELEMENT_ACC[index_iter, :] = each_acc
+    overall_acc = metrics.accuracy_score(pred_test, gt_test)
+    confusion_matrix = metrics.confusion_matrix(pred_test, gt_test)
+    each_acc, average_acc = aa_and_each_accuracy(confusion_matrix)
+    kappa = metrics.cohen_kappa_score(pred_test, gt_test)
+    print(each_acc)
+    torch.save(net.state_dict(), "./models/" + str(round(overall_acc, 3)) + '.pt')
+    KAPPA.append(kappa)
+    OA.append(overall_acc)
+    AA.append(average_acc)
+    TRAINING_TIME.append(toc1 - tic1)
+    TESTING_TIME.append(toc2 - tic2)
+    ELEMENT_ACC[index_iter, :] = each_acc
 
     
 #print("--------" + net.name + " Training Finished-----------")
-#record.record_output(OA, AA, KAPPA, ELEMENT_ACC, TRAINING_TIME, TESTING_TIME,
-                     #'records/' + net.name + 'Patch'+ str(2*PATCH_LENGTH+1) + 'Time' + day_str + '_' + Dataset + 'TrainingSamples' + str(SAMPLES_NUM) + 'lr：' + str(lr) + '.txt')
+record.record_output(OA, AA, KAPPA, ELEMENT_ACC, TRAINING_TIME, TESTING_TIME,
+                     './records/' + net.name + 'Patch'+ str(2*PATCH_LENGTH+1) + 'Time' + day_str + '_' + Dataset + 'TrainingSamples' + str(SAMPLES_NUM) + 'lr' + str(lr) + '.txt')
 
 #generate_png(all_iter, net, gt_hsi, Dataset, device, total_indices)
