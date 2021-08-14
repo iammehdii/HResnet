@@ -1,0 +1,16 @@
+,Healthy Grass,Stressed Grass,Synthetic Grass,Tree,Soil,Water,Residential,Commercial,Road,Highway,Railway,Parking Lot1,Parking Lot2,Tennis Court,Running Track
+Healthy Grass,391,10,0,0,0,0,0,0,0,0,0,0,0,0,0
+Stressed Grass,0,171,0,0,0,0,0,0,0,0,0,0,0,0,0
+Synthetic Grass,0,0,279,0,0,0,0,4,9,4,2,29,3,0,0
+Tree,110,321,0,498,10,0,0,0,8,0,0,0,0,0,0
+Soil,0,0,0,0,422,0,0,0,0,0,0,0,0,0,0
+Water,0,0,0,0,0,126,0,0,0,0,0,1,1,0,0
+Residential,0,0,0,0,21,0,504,7,4,0,80,6,0,1,5
+Commercial,0,0,0,0,30,0,4,467,12,10,5,0,3,8,0
+Road,0,0,0,0,7,0,0,1,430,25,0,30,0,0,0
+Highway,0,0,0,0,0,0,0,0,23,387,121,2,2,0,0
+Railway,0,0,0,0,0,0,0,0,0,0,260,0,0,0,0
+Parking Lot1,0,0,0,0,0,0,0,3,0,65,16,426,1,0,0
+Parking Lot2,0,0,0,0,6,5,0,16,16,0,11,1,179,1,0
+Tennis Court,0,0,0,0,0,0,0,0,0,0,0,0,0,162,0
+Running Track,0,0,0,0,2,0,0,0,0,0,0,0,0,0,259

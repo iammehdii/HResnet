@@ -12,6 +12,7 @@ import sys
 sys.path.append('./utils/')
 import d2lzh_pytorch as d2l
 from torch.nn import Softmax
+import transformers
 def evaluate_accuracy(data_iter, net, loss, device):
     sftmax = Softmax(dim=1)
     acc_sum, n = 0.0, 0
@@ -37,6 +38,7 @@ def train(net, train_iter, valida_iter, loss, optimizer, device, epochs=30, earl
           early_num=20):
     loss_list = [100]
     early_epoch = 0
+    best_acc = 0
     sftmax = Softmax(dim=1)
     net = net.to(device)
     print("training on ", device)
@@ -45,10 +47,13 @@ def train(net, train_iter, valida_iter, loss, optimizer, device, epochs=30, earl
     valida_loss_list = []
     train_acc_list = []
     valida_acc_list = []
+    lr_adjust = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, 15 , eta_min=0.0, last_epoch=-1)
+    #num_training_steps = len(train_iter)*epochs
+    #lr_adjust = transformers.get_cosine_schedule_with_warmup(
+    #optimizer,  0.0, num_training_steps,  0.5,  -1)
     for epoch in range(epochs):
         train_acc_sum, n = 0.0, 0
         time_epoch = time.time()
-        lr_adjust = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, 15, eta_min=0.0, last_epoch=-1)
         for X, y in train_iter:
             batch_count, train_l_sum = 0, 0
             X = X.to(device)
@@ -68,7 +73,12 @@ def train(net, train_iter, valida_iter, loss, optimizer, device, epochs=30, earl
             train_acc_sum += (y_hat_f.argmax(dim=1).float() == y).sum().cpu().item()
             n += y.shape[0]
             batch_count += 1
-        lr_adjust.step(epoch)
+        lr_adjust.step()
+        current_lr = lr_adjust.get_lr()
+        print('current_lr before step', current_lr)
+        #lr_adjust.step()
+        #current_lr = lr_adjust.get_lr()
+        #print('current_lr after step', current_lr)
         valida_acc, valida_loss = evaluate_accuracy(valida_iter, net, loss, device)
         tr_acc, tr_loss = evaluate_accuracy(train_iter, net, loss, device)
         
@@ -84,17 +94,28 @@ def train(net, train_iter, valida_iter, loss, optimizer, device, epochs=30, earl
 
         PATH = "./net_DBA.pt"
 
-        if early_stopping and loss_list[-2] < loss_list[-1]:
-            if early_epoch == 0:
-                torch.save(net.state_dict(), PATH)
-            early_epoch += 1
-            loss_list[-1] = loss_list[-2]
-            if early_epoch == early_num:
-                net.load_state_dict(torch.load(PATH))
-                break
-        else:
-            early_epoch = 0
+        if valida_acc > best_acc:
+            best_acc = valida_acc
+            print('best_acc', best_acc)
+            torch.save(net.state_dict(), PATH)
+            #lr_adjust.step()
+        #else:
+            #net.load_state_dict(torch.load(PATH))
 
+
+        #if early_stopping and loss_list[-2] < loss_list[-1]:
+            #if early_epoch == 0:
+                #torch.save(net.state_dict(), PATH)
+            #early_epoch += 1
+            #loss_list[-1] = loss_list[-2]
+            #if early_epoch == early_num:
+                #net.load_state_dict(torch.load(PATH))
+                #break
+        #else:
+            #early_epoch = 0
+            
+    net.load_state_dict(torch.load(PATH))
+    
     #d2l.set_figsize()
     #d2l.plt.figure(figsize=(8, 8.5))
     #train_accuracy = d2l.plt.subplot(221)

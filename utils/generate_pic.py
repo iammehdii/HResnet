@@ -25,7 +25,9 @@ def load_dataset(Dataset):
         TOTAL_SIZE = 207400
         #VALIDATION_SPLIT = 0.999
         VALIDATION_SPLIT = 0.3
-
+        class_names = [ 'Asphalt', 'Meadows', 'Gravel', 'Trees',
+                        'Painted metal sheets', 'Bare Soil', 'Bitumen',
+                        'Self-Blocking Bricks', 'Shadows']
         TRAIN_SIZE = math.ceil(TOTAL_SIZE * VALIDATION_SPLIT)
     if Dataset == 'IP':
         uPavia = sio.loadmat('./dataset/Indian_pines_corrected.mat')
@@ -35,6 +37,11 @@ def load_dataset(Dataset):
         TOTAL_SIZE = 21025
         #VALIDATION_SPLIT = 0.999
         VALIDATION_SPLIT = 0.1
+        class_names = ['Alfalfa', 'Corn-notill', 'Corn-mintill', 'Corn'
+           ,'Grass-pasture', 'Grass-trees', 'Grass-pasture-mowed', 
+            'Hay-windrowed', 'Oats', 'Soybean-notill', 'Soybean-mintill',
+           'Soybean-clean', 'Wheat', 'Woods', 'Buildings-Grass-Trees-Drives',
+           'Stone-Steel-Towers']
 
         TRAIN_SIZE = math.ceil(TOTAL_SIZE * VALIDATION_SPLIT)        
     if Dataset == 'DFC2013':
@@ -45,6 +52,11 @@ def load_dataset(Dataset):
         TOTAL_SIZE = 15029
         VALIDATION_SPLIT = 0.9
         TRAIN_SIZE = math.ceil(TOTAL_SIZE * VALIDATION_SPLIT)
+        class_names = ["Healthy Grass", "Stressed Grass",
+                "Synthetic Grass", "Tree",
+                "Soil", "Water",
+                "Residential", "Commercial", "Road",
+                "Highway", "Railway", "Parking Lot1", "Parking Lot2","Tennis Court","Running Track"]
     
     if Dataset == 'DN':
         DN = sio.loadmat('../datasets/Dioni.mat')
@@ -71,8 +83,13 @@ def load_dataset(Dataset):
         TOTAL_SIZE = 504712
         VALIDATION_SPLIT = 0.9
         TRAIN_SIZE = math.ceil(TOTAL_SIZE * VALIDATION_SPLIT)
+        class_names = ["Scrub", "Willow swamp",
+                "Cabbage palm hammock", "Cabbage palm/oak hammock",
+                "Slash pine", "Oak/broadleaf hammock",
+                "Hardwood swamp", "Graminoid marsh", "Spartina marsh",
+                "Cattail marsh", "Salt marsh", "Mud flats", "Wate"]
     
-    return data_hsi, gt_hsi, TOTAL_SIZE, TRAIN_SIZE,VALIDATION_SPLIT
+    return data_hsi, gt_hsi, class_names
 def save_cmap(img, cmap, fname):
     sizes = np.shape(img)
     height = float(sizes[0])
@@ -126,16 +143,19 @@ def sampling2(ground_truth, proportion):
     m = max(ground_truth)
     for i in range(m):
         indexes = [j for j, x in enumerate(ground_truth.ravel().tolist()) if x == i + 1]
+        #print('class',i,'indexes',len(indexes))
         np.random.shuffle(indexes)
         labels_loc[i] = indexes
         if proportion != 1:
             nb_val = max(int((1 - proportion) * len(indexes)), 3)
         else:
             nb_val = 0
-        print('nb_val', nb_val)
+        #print('nb_val', nb_val)
         train[i] = indexes[:nb_val]
         val[i] = indexes[nb_val:2*nb_val]
         test[i] = indexes[2*nb_val:]
+        print('[i]', i, 'test[i]',len(test[i]))
+
     train_indexes = []
     val_indexes = []
     test_indexes = []
@@ -143,6 +163,7 @@ def sampling2(ground_truth, proportion):
         train_indexes += train[i]
         val_indexes += val[i]
         test_indexes += test[i]
+        #print('[i]', i, 'test[i]',len(test[i]))
     np.random.shuffle(train_indexes)
     np.random.shuffle(val_indexes)
     np.random.shuffle(test_indexes)

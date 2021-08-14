@@ -1,0 +1,14 @@
+,Scrub,Willow swamp,Cabbage palm hammock,Cabbage palm/oak hammock,Slash pine,Oak/broadleaf hammock,Hardwood swamp,Graminoid marsh,Spartina marsh,Cattail marsh,Salt marsh,Mud flats,Wate
+Scrub,305,0,0,0,0,8,0,0,0,0,0,0,0
+Willow swamp,0,98,0,0,0,0,0,0,0,0,0,0,0
+Cabbage palm hammock,0,0,101,8,0,0,0,0,0,0,0,0,0
+Cabbage palm/oak hammock,0,0,3,90,2,0,0,0,0,0,0,0,0
+Slash pine,0,0,0,3,63,0,0,0,0,0,0,0,0
+Oak/broadleaf hammock,0,0,0,0,0,85,0,0,0,0,0,0,0
+Hardwood swamp,0,1,0,0,0,0,43,0,0,0,0,0,0
+Graminoid marsh,0,0,0,1,0,0,0,173,20,0,0,0,0
+Spartina marsh,0,0,0,0,0,0,0,0,188,0,0,0,0
+Cattail marsh,0,0,0,0,0,0,0,0,0,159,0,0,0
+Salt marsh,0,0,0,0,0,0,0,0,0,0,169,0,0
+Mud flats,0,0,0,0,0,0,0,0,0,3,0,203,0
+Wate,0,0,0,0,0,0,0,0,0,0,0,0,371

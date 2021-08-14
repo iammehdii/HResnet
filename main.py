@@ -22,6 +22,7 @@ from sklearn.decomposition import PCA
 sys.path.append('./utils')
 from generate_pic import aa_and_each_accuracy, sampling1, sampling2, load_dataset, generate_png, generate_iter
 import record, extract_samll_cubic
+from record import print_confusion_matrix
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #device = torch.device('cuda:0')
@@ -40,10 +41,10 @@ day_str = day.strftime('%m_%d_%H_%M')
 
 print('-----Importing Dataset-----')
 global Dataset
-dataset = 'KSC'
+dataset = 'DFC2013'
 Dataset = dataset.upper()
 #data_hsi, gt_hsi, TOTAL_SIZE, TRAIN_SIZE,VALIDATION_SPLIT = load_dataset(Dataset)
-data_hsi, gt_hsi, _, _,_ = load_dataset(Dataset)
+data_hsi, gt_hsi, class_names = load_dataset(Dataset)
 
 
 #data_hsi,pca = applyPCA(data_hsi,numComponents=30)
@@ -66,9 +67,9 @@ print('The class numbers of the HSI data is:', CLASSES_NUM)
 ##########################################
 
 print('-----Importing Setting Parameters-----')
-ITER = 1
-PATCH_LENGTH = 4
-lr, num_epochs, batch_size = 0.001, 50, 128
+ITER = 5
+PATCH_LENGTH = 2
+lr, num_epochs, batch_size = 0.01, 50, 128
 loss = torch.nn.CrossEntropyLoss()
 
 img_rows = 2*PATCH_LENGTH+1
@@ -99,8 +100,8 @@ print('part of data before preprocessing',data[100:110][0])
 #min_value = np.amin(data)
 #idx =np.where(data == max_value)
 #print('max', max_value, 'min',min_value)
-#data = preprocessing.scale(data)
-data = (data - np.amin(data))/np.ptp(data)
+data = preprocessing.scale(data)
+#data = (data - np.amin(data))/np.ptp(data)
 
 print('part of data after preprocessing',data[0:10][0])
 #max_value = np.amax(data)
@@ -167,10 +168,13 @@ for index_iter in range(ITER):
     
     overall_acc = metrics.accuracy_score(pred_test, gt_test)
     confusion_matrix = metrics.confusion_matrix(pred_test, gt_test)
+    fig,df_cm = print_confusion_matrix(confusion_matrix, class_names)
+    fig.savefig('confusion_matrix'+'_'+Dataset+'.png',dpi=600)
+    df_cm.to_csv('confusion_matrix'+'_'+Dataset+'.csv')
     each_acc, average_acc = aa_and_each_accuracy(confusion_matrix)
     kappa = metrics.cohen_kappa_score(pred_test, gt_test)
     print(each_acc)
-    torch.save(net.state_dict(), "./models/" + str(round(overall_acc, 3)) + '.pt')
+    torch.save(net.state_dict(), "./models/" + Dataset + '.pt')
     KAPPA.append(kappa)
     OA.append(overall_acc)
     AA.append(average_acc)
@@ -183,4 +187,4 @@ for index_iter in range(ITER):
 record.record_output(OA, AA, KAPPA, ELEMENT_ACC, TRAINING_TIME, TESTING_TIME,
                      './records/' + net.name + 'Patch'+ str(2*PATCH_LENGTH+1) + 'Time' + day_str + '_' + Dataset + 'TrainingSamples' + str(SAMPLES_NUM) + 'lr' + str(lr) + '.txt')
 
-#generate_png(all_iter, net, gt_hsi, Dataset, device, total_indices)
+generate_png(all_iter, net, gt_hsi, Dataset, device, total_indices)
