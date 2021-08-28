@@ -40,16 +40,20 @@ class PAM_Module(Module):
         self.softmax = Softmax(dim=-1)
         
     def forward(self, x):
+        print('x',x.shape)
         x = x.squeeze(-1)
         m_batchsize, C, height, width = x.size()
         proj_query = self.query_conv(x).view(m_batchsize, -1, width * height).permute(0, 2, 1)
         proj_key = self.key_conv(x).view(m_batchsize, -1, width * height)
         energy = torch.bmm(proj_query, proj_key)
         attention = self.softmax(energy)
+        print('attention', attention) #attention torch.Size([128, 25, 25])
         proj_value = self.value_conv(x).view(m_batchsize, -1, width * height)
         out = torch.bmm(proj_value, attention.permute(0, 2, 1))
         out = out.view(m_batchsize, C, height, width)
-        out = (self.gamma*out + x).unsqueeze(-1)
+        # out = (self.gamma*out + x).unsqueeze(-1)
+        # out = (self.gamma*out ).unsqueeze(-1)
+        out = out.unsqueeze(-1)
         #print('attention spatial',attention.shape)
         return out
 
@@ -61,18 +65,30 @@ class CAM_Module(Module):
         self.gamma = Parameter(torch.zeros(1))
         self.softmax  = Softmax(dim=-1)
         
-    def forward(self, x):
+    def forward(self, x): #x:  torch.Size([128, 24, 11, 11, 2])
         m_batchsize, C, height, width, channle = x.size()
+        # print('channle', channle)
         proj_query = x.view(m_batchsize, C, -1)
-        proj_key = x.view(m_batchsize, C, -1).permute(0, 2, 1)
+        # print('proj_query', proj_query.shape) #proj_query torch.Size([128, 24, 50])
+        proj_key = x.view(m_batchsize, C, -1).permute(0, 2, 1) #proj_key torch.Size([128, 50, 24])
+        # print('proj_key', proj_key.shape)
         energy = torch.bmm(proj_query, proj_key)
-        energy_new = torch.max(energy, -1, keepdim=True)[0].expand_as(energy)-energy
-        attention = self.softmax(energy_new)
+        # print('energy', energy.shape)
+        # energy_new = torch.max(energy, -1, keepdim=True)[0].expand_as(energy)-energy
+        # print('energy_new', energy_new.shape)
+
+        # attention = self.softmax(energy_new)
+        attention = self.softmax(energy)
+
         #print('attention',attention.shape)
         proj_value = x.view(m_batchsize, C, -1)
-        out = torch.bmm(attention, proj_value)
+        out = torch.bmm(attention, proj_value) # out torch.Size([128, 24, 50])
+        # print('out', out.shape)
         out = out.view(m_batchsize, C, height, width, channle)
-        out = self.gamma*out + x 
+        # out = self.gamma*out + x 
+        # out = self.gamma*out
+        # out = out.unsqueeze(-1)
+        # print('out', out.shape)
         return out
 
 
@@ -155,13 +171,13 @@ class HResNetAM(nn.Module):
 
         X13 = self.conv13(X12)
         X13 = self.batch_norm12(X13)
-        #print('X13',X13.shape)
+        # print('X13',X13.shape) # torch.Size([8, 24, 11,11, 2])
 
         X1 = self.attention_spectral(X13) #X1: torch.Size([8, 24, 11, 11, 2])
-        #print('X1:',X1.shape)
-        X1 = torch.mul(X1, X13) #X1: torch.Size([8, 24, 11, 11, 2])
+        # print('X1:',X1.shape)
+        # X1 = torch.mul(X1, X13) #X1: torch.Size([8, 24, 11, 11, 2])
         #X1 = X13
-        #print('X1:',X1.shape,'FFFFFFFFFFFFFFFFFFFFFFFF')
+        # print('torch.mul:',X1.shape,'FFFFFFFFFFFFFFFFFFFFFFFF')
         X21 = self.conv21(X)
         X21 = self.batch_norm21(X21)
 
@@ -191,7 +207,7 @@ class HResNetAM(nn.Module):
         #print('X22',X22.shape)
         
         X2 = self.attention_spatial(X22)
-        X2 = torch.mul(X2, X22)
+        # X2 = torch.mul(X2, X22)
         #X2= X22
         #print('X2:',X2.shape)
         X1 = self.batch_norm_spectral(X1)

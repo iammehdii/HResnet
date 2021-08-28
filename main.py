@@ -41,7 +41,7 @@ day_str = day.strftime('%m_%d_%H_%M')
 
 print('-----Importing Dataset-----')
 global Dataset
-dataset = 'DFC2013'
+dataset = 'PC'
 Dataset = dataset.upper()
 #data_hsi, gt_hsi, TOTAL_SIZE, TRAIN_SIZE,VALIDATION_SPLIT = load_dataset(Dataset)
 data_hsi, gt_hsi, class_names = load_dataset(Dataset)
@@ -69,7 +69,7 @@ print('The class numbers of the HSI data is:', CLASSES_NUM)
 print('-----Importing Setting Parameters-----')
 ITER = 5
 PATCH_LENGTH = 2
-lr, num_epochs, batch_size = 0.01, 50, 128
+lr, num_epochs, batch_size = 0.01, 10, 128
 loss = torch.nn.CrossEntropyLoss()
 
 img_rows = 2*PATCH_LENGTH+1
