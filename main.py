@@ -41,7 +41,7 @@ day_str = day.strftime('%m_%d_%H_%M')
 
 print('-----Importing Dataset-----')
 global Dataset
-dataset = 'PC'
+dataset = 'DFC2013'
 Dataset = dataset.upper()
 #data_hsi, gt_hsi, TOTAL_SIZE, TRAIN_SIZE,VALIDATION_SPLIT = load_dataset(Dataset)
 data_hsi, gt_hsi, class_names = load_dataset(Dataset)
@@ -67,9 +67,9 @@ print('The class numbers of the HSI data is:', CLASSES_NUM)
 ##########################################
 
 print('-----Importing Setting Parameters-----')
-ITER = 5
+ITER = 10
 PATCH_LENGTH = 2
-lr, num_epochs, batch_size = 0.01, 10, 128
+lr, num_epochs, batch_size = 0.01, 20, 128
 loss = torch.nn.CrossEntropyLoss()
 
 img_rows = 2*PATCH_LENGTH+1
@@ -187,4 +187,4 @@ for index_iter in range(ITER):
 record.record_output(OA, AA, KAPPA, ELEMENT_ACC, TRAINING_TIME, TESTING_TIME,
                      './records/' + net.name + 'Patch'+ str(2*PATCH_LENGTH+1) + 'Time' + day_str + '_' + Dataset + 'TrainingSamples' + str(SAMPLES_NUM) + 'lr' + str(lr) + '.txt')
 
-generate_png(all_iter, net, gt_hsi, Dataset, device, total_indices)
+#generate_png(all_iter, net, gt_hsi, Dataset, device, total_indices)
